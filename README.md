@@ -98,8 +98,8 @@ pip install -r requirements.txt
 
 # 2️⃣ 노트북 실행
 jupyter notebook lifelog_analysis.ipynb
-
-
+```bash
+---
 ## 👤 작성자
 - **팀명:** 킹운중  
 
