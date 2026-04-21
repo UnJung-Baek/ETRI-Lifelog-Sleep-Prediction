@@ -1,17 +1,16 @@
-# 🧠 ETRI 라이프로그 기반 수면 건강 예측 AI 경진대회
+# 🧠 제 4회 ETRI 휴먼이해 인공지능 논문경진대회
 
-> **Explainable Time-Series Feature Engineering for Sleep Quality Prediction Using Lifelog Data**  
-> 📄 Published in **ICTC 2025**  
-> (This repository contains code used in the Dacon competition; dataset and paper are not included due to copyright restrictions.)
+> **라이프로그 데이터를 활용한 수면 품질 예측을 위한 설명 가능한 시계열 피처 엔지니어링**  
+> (데이터는 저작권 문제로 포함되어 있지 않습니다.)
 
 ---
 
 ## 🏆 대회 개요
-- **대회명:** ETRI 라이프로그 데이터를 활용한 수면 품질 및 상태 예측 AI 경진대회  
+- **대회명:** 제 4회 ETRI 휴먼이해 인공지능 논문경진대회
 - **주최:** ETRI (한국전자통신연구원) × Dacon  
-- **대회 링크:** [https://dacon.io/competitions/official/236468/overview/description](https://dacon.io/competitions/official/236468/overview/description)  
+- **대회 링크:** https://dacon.io/competitions/open/236468/overview/description  
 - **설명:**  
-  라이프로그 데이터(활동·심박·수면 등)를 활용하여 개인의 수면 관련 문항(Q1 ~ Q3, S1 ~ S3)을 예측하는 AI 모델 개발 과제
+  라이프로그 센서 데이터(활동, 심박 등)를 활용해 개인의 수면 품질 및 상태(Q1~Q3, S1~S3)를 예측하는 예측 AI 경진대회입니다.
 
 ---
 
@@ -19,40 +18,41 @@
 
 | 항목 | 내용 |
 |------|------|
-| OS | Ubuntu 22.04.3 LTS (VSCode Remote SSH from Windows 11) |
-| Python | 3.11.11 |
-| 주요 라이브러리 | numpy 1.26.4, pandas 2.2.2, scipy 1.13.1, scikit-learn 1.5.1, lightgbm 4.3.0, catboost 1.2.5, tqdm 4.66.4 등 |
+| OS | Windows 11 / Google Colab |
+| Python | 3.10 |
+| 주요 라이브러리 | numpy, pandas, scikit-learn, lightgbm, catboost, xgboost, tqdm 등 |
 
 ---
 
 ## 📂 데이터
 
-- **데이터 출처:** Dacon 공식 제공 (비공개)
+- **데이터 출처:** Dacon 제공
 - **형식:**
   - 센서 데이터: `.parquet` (`ch2025_data_items`)
   - 학습 라벨: `ch2025_metrics_train.csv`
   - 제출 샘플: `ch2025_submission_sample.csv`
 - **주의:**  
-  Dacon 및 ETRI의 데이터 저작권 정책에 따라 **원본 데이터는 공개 저장소에 포함하지 않습니다.**
+  **데이터는 저작권 문제로 포함하지 않습니다.**
 
 ---
 
-## 🧩 데이터 처리 및 피처 엔지니어링
+## 🧩 데이터 처리 및 특징 추출
 
-### 🔹 주요 파생 피처
+### 🔹 주요 처리 과정
 
-| 구분 | 변수 예시 | 설명 |
-|------|------------|------|
-| 통계적 | mean, std, median | 구간별 기본 통계값 |
-| 변동성 | IQR, MAD | 이상치 및 분산 반영 |
-| 시계열 | diff, pct_change, EMA, expanding mean | 변화 추세 반영 |
-| 패턴 탐지 | zero-crossing | 신호 부호 교차 횟수 |
-| 날짜 기반 | dayofweek, month, hour, is_weekend, date_diff | 주기성 및 시간대 패턴 반영 |
+| 구분 | 내용 |
+|------|------|
+| 센서 데이터 | Activity, Heart Rate, Step, Light, GPS 등 |
+| 시간 정렬 | 서로 다른 주기의 데이터를 1Hz 기준으로 동기화 |
+| 결측치 처리 | 보간(interpolation) 및 정규화 수행 |
+| 데이터 변환 | 시계열 데이터를 이미지 형태로 변환 |
 
-### 🔹 집계 방식
-- `subject_id` 기준 그룹화
-- 피처별 `mean`, `std`, `min`, `max` 집계  
-- 최종적으로 subject 단위 feature table 생성
+---
+
+### 🔹 이미지 변환 방식
+- 시계열 데이터를 시간 축 기준으로 정렬
+- 센서별 값을 하나의 행렬 형태로 구성
+- 다채널 이미지 형태로 변환하여 CNN 입력으로 활용
 
 ---
 
@@ -60,44 +60,34 @@
 
 | 항목 | 내용 |
 |------|------|
-| 대상 타깃 | Q1, Q2, Q3, S1, S2, S3 (총 6개) |
-| 모델 구성 | **LightGBM + CatBoost 앙상블 (비율 0.3 : 0.7)** |
-| 교차 검증 | Stratified K-Fold (5 folds, random_state=42) |
-| 결측치 처리 | 수치형: -1 / 범주형: -1 |
+| 대상 타깃 | 수면 상태 및 품질 관련 지표 |
+| 모델 구성 | **CNN 기반 딥러닝 모델 (ResNet 계열)** |
+| 입력 데이터 | 시계열 → 이미지 변환 데이터 |
+| 학습 방식 | Supervised Learning |
 | 평가 지표 | Macro F1-score |
 
-### LightGBM 파라미터
-```python
-n_estimators = 1200
-learning_rate = 0.045
-class_weight = 'balanced'
-force_col_wise = True
-```
+---
 
-### CatBoost 파라미터
-```python
-iterations = 1200
-learning_rate = 0.045
-depth = 6
-l2_leaf_reg = 4
-early_stopping_rounds = 30
-```
+### CNN 모델 특징
+- 이미지 기반 패턴 학습
+- 시계열 데이터의 복잡한 관계를 공간적으로 표현
+- 다양한 센서 간 상호작용 학습 가능
 
 ---
 
 ## 📈 예측 및 결과 생성
 
-- 5개 폴드 예측 → Soft Voting 평균 → `argmax` 로 최종 결정  
-- **최종 제출 파일:** `./data/submission_final_boost_timestrong.csv`  
-- **컬럼 구성:**  
-  `subject_id, sleep_date, lifelog_date, Q1, Q2, Q3, S1, S2, S3`
+- 이미지 데이터를 기반으로 모델 학습 수행
+- 각 샘플에 대해 수면 상태 예측
+- Softmax 기반 확률 출력 후 최종 클래스 결정
 
 ---
 
 ## 📊 성능
-- **Public Leaderboard:** `Macro F1 ≈ 0.62555`  
-- **모델 비중:** CatBoost(0.7) > LightGBM(0.3)  
-  → CatBoost의 성능 기여도가 높음
+- 딥러닝 기반 접근을 통해 시계열 패턴을 효과적으로 학습
+- 기존 통계 기반 모델 대비 복잡한 패턴 표현 가능
+
+※ 데이터 미포함으로 인해 정확한 점수 재현은 환경에 따라 달라질 수 있음
 
 ---
 
@@ -108,41 +98,19 @@ pip install -r requirements.txt
 
 # 2️⃣ 노트북 실행
 jupyter notebook lifelog_analysis.ipynb
-```
-
----
-
-## 🧾 참고
-- 본 연구 결과는 **ICTC 2025** 학회에  
-  “*Explainable Time-Series Feature Engineering for Sleep Quality Prediction Using Lifelog Data*”  
-  라는 제목으로 제출되었습니다.  
-  (논문 전문은 비공개)
 
 ---
 
 ## 👤 작성자
-- **팀명:** sch_csm  
-- **참여 역할:** 데이터 처리 · 피처 엔지니어링 · 모델 설계 및 성능 개선  
+- **팀명:** 킹운중  
 
----
 
-## 🥇 수상 내역
-- 과학기술정보통신부 장관상 (전국 1위)
-- 예선·본선을 거쳐 최종 1위 달성
+## 회고 및 느낀 점
+이번 ETRI 라이프로그 기반 수면 건강 예측 AI 경진대회에 참여하며, 단순한 모델 성능 향상을 넘어 데이터와 문제를 바라보는 관점을 깊이 있게 확장할 수 있는 경험을 했습니다.
 
-![award](./image/award.jpg)
+대회 초반에는 다양한 피처 엔지니어링과 모델 실험에 집중하며 성능 개선을 시도하였으나, 퍼블릭 리더보드 점수를 지속적으로 모니터링하고 전략적으로 활용하지 못한 점이 아쉬움으로 남습니다. 후반에 점수를 확인했을 때 기대보다 낮은 성능을 확인했지만, 제한된 시간 내에 충분한 방향 수정과 검증을 진행하지 못해 최종적으로 상위 30% 수준의 결과를 기록하게 되었습니다.
 
----
+이번 경험을 통해 모델 자체의 성능뿐만 아니라, 실험 결과를 빠르게 검증하고 방향성을 조정하는 과정, 그리고 리더보드 기반의 전략적 접근이 성능에 큰 영향을 미친다는 점을 체감할 수 있었습니다. 특히 동일한 모델 구조에서도 검증 방식과 실험 설계에 따라 결과가 크게 달라질 수 있다는 점이 인상적이었습니다.
 
-## 🏆 수상 소감
-이번 ETRI 라이프로그 기반 수면 건강 예측 AI 경진대회를 통해 소중한 기회를 얻을 수 있어 진심으로 감사드립니다.
-대회 기간 동안 단순한 성능 향상을 넘어, 데이터의 의미를 깊이 이해하고 문제를 해결하는 과정을 통해 많은 것을 배우고 성장할 수 있었습니다.
+앞으로는 모델링뿐만 아니라 검증 전략, 데이터 분할 방식, 리더보드 활용까지 포함한 전체 파이프라인 관점에서 문제를 접근하고자 합니다. 이번 경험을 통해 얻은 인사이트를 바탕으로, 보다 체계적이고 재현 가능한 실험 환경을 구축하며 지속적으로 성능을 개선해 나가겠습니다.
 
-처음에는 쉽지 않은 도전이었지만, 꾸준히 시도하고 끝까지 포기하지 않으면서 결과를 만들어낼 수 있었습니다.
-이 과정에서 협업의 중요성과 탐구의 즐거움을 다시 한 번 느낄 수 있었고, AI가 사람의 삶에 긍정적인 변화를 줄 수 있다는 확신도 더욱 강해졌습니다.
-
-이번 경험을 발판 삼아 앞으로도 끊임없이 배우고 연구하며, 더 나은 인공지능 모델을 만들기 위해 노력하겠습니다.
-배움의 자세를 잃지 않고, 도전을 즐기는 연구자로 계속 성장해 나가겠습니다.
-
-📘 *본 저장소는 연구 재현을 위해 코드 중심으로 공개되었으며,  
-데이터 및 논문 전문은 포함하지 않습니다.*
