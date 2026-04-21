@@ -6,11 +6,11 @@
 ---
 
 ## 🏆 대회 개요
-- **대회명:** 제 4회 ETRI 휴먼이해 인공지능 논문경진대회
+- **대회명:** 제 4회 ETRI 휴먼이해 인공지능 논문경진대회  
 - **주최:** ETRI (한국전자통신연구원) × Dacon  
 - **대회 링크:** https://dacon.io/competitions/open/236468/overview/description  
 - **설명:**  
-  라이프로그 센서 데이터(활동, 심박 등)를 활용해 개인의 수면 품질 및 상태(Q1~Q3, S1~S3)를 예측하는 예측 AI 경진대회입니다.
+  라이프로그 센서 데이터(활동, 심박 등)를 활용하여 개인의 수면 품질 및 상태(Q1~Q3, S1~S3)를 예측하는 AI 경진대회입니다.
 
 ---
 
@@ -20,7 +20,7 @@
 |------|------|
 | OS | Windows 11 / Google Colab |
 | Python | 3.10 |
-| 주요 라이브러리 | numpy, pandas, scikit-learn, lightgbm, catboost, xgboost, tqdm 등 |
+| 주요 라이브러리 | numpy, pandas, torch, scikit-learn, tqdm, matplotlib, opencv-python |
 
 ---
 
@@ -36,23 +36,77 @@
 
 ---
 
+## 📁 프로젝트 구조
+```bash
+ETRI-Lifelog-Sleep-Prediction/
+│
+├── datasets/
+│ ├── val_datasets/
+│ │ ├── acc/
+│ │ ├── activity/
+│ │ ├── hr/
+│ │
+│ ├── test_datasets/
+│ │ ├── acc/
+│ │ ├── activity/
+│ │ ├── hr/
+│ │
+│ ├── raw_datasets/
+│ └── image_datasets/
+│
+├── preprocess_val_base.ipynb
+├── preprocess_val_full.ipynb
+├── preprocess_test_base.ipynb
+├── preprocess_test_full.ipynb
+│
+├── train_cnn_base.ipynb
+├── train_cnn_full.ipynb
+│
+├── inference_cnn_base.ipynb
+├── inference_cnn_full.ipynb
+│
+├── submission.ipynb
+└── README.md
+```
+
+---
+
+## 🔄 전체 파이프라인
+```bash
+[Raw Sensor Data]
+↓
+[Preprocessing]
+↓
+[Image Transformation]
+↓
+[Model Training (CNN)]
+↓
+[Inference]
+↓
+[Submission 생성]
+```
+
+---
+
 ## 🧩 데이터 처리 및 특징 추출
 
 ### 🔹 주요 처리 과정
 
 | 구분 | 내용 |
 |------|------|
-| 센서 데이터 | Activity, Heart Rate, Step, Light, GPS 등 |
-| 시간 정렬 | 서로 다른 주기의 데이터를 1Hz 기준으로 동기화 |
-| 결측치 처리 | 보간(interpolation) 및 정규화 수행 |
-| 데이터 변환 | 시계열 데이터를 이미지 형태로 변환 |
+| 센서 데이터 | Activity, Heart Rate, Step 등 |
+| 시간 정렬 | 1Hz 기준으로 동기화 |
+| 결측치 처리 | interpolation 기반 보간 |
+| 정규화 | 센서별 스케일 정규화 |
+| 데이터 변환 | 시계열 → 이미지 변환 |
 
 ---
 
 ### 🔹 이미지 변환 방식
-- 시계열 데이터를 시간 축 기준으로 정렬
-- 센서별 값을 하나의 행렬 형태로 구성
-- 다채널 이미지 형태로 변환하여 CNN 입력으로 활용
+
+- 시계열 데이터를 시간 축 기준으로 정렬  
+- 센서별 값을 행렬 형태로 구성  
+- 다채널 이미지로 변환 후 CNN 입력  
 
 ---
 
@@ -60,46 +114,83 @@
 
 | 항목 | 내용 |
 |------|------|
-| 대상 타깃 | 수면 상태 및 품질 관련 지표 |
-| 모델 구성 | **CNN 기반 딥러닝 모델 (ResNet 계열)** |
-| 입력 데이터 | 시계열 → 이미지 변환 데이터 |
+| 대상 타깃 | Q1~Q3, S1~S3 |
+| 모델 | CNN 기반 딥러닝 모델 |
+| 구조 | ResNet 계열 |
+| 입력 데이터 | 이미지 변환된 시계열 데이터 |
 | 학습 방식 | Supervised Learning |
 | 평가 지표 | Macro F1-score |
 
 ---
 
-### CNN 모델 특징
-- 이미지 기반 패턴 학습
-- 시계열 데이터의 복잡한 관계를 공간적으로 표현
-- 다양한 센서 간 상호작용 학습 가능
+### 🔹 Model Variants
+
+| 모델 | 설명 |
+|------|------|
+| Base | 기본 센서 기반 |
+| Full | 확장 피처 포함 |
+
+- **Base:** 빠르고 가벼움  
+- **Full:** 성능 향상 (연산량 증가)
 
 ---
 
 ## 📈 예측 및 결과 생성
 
-- 이미지 데이터를 기반으로 모델 학습 수행
-- 각 샘플에 대해 수면 상태 예측
-- Softmax 기반 확률 출력 후 최종 클래스 결정
+- CNN 모델로 수면 상태 예측  
+- Softmax 확률 기반 클래스 결정  
+- 제출 파일 생성  
 
 ---
 
-## 📊 성능
-- 딥러닝 기반 접근을 통해 시계열 패턴을 효과적으로 학습
-- 기존 통계 기반 모델 대비 복잡한 패턴 표현 가능
-
-※ 데이터 미포함으로 인해 정확한 점수 재현은 환경에 따라 달라질 수 있음
+## 📊 Output
+```bash
+submission.csv
+├── ID
+├── Q1, Q2, Q3
+└── S1, S2, S3
+```
 
 ---
 
 ## 🚀 실행 방법
+
 ```bash
 # 1️⃣ 환경 세팅
 pip install -r requirements.txt
 
-# 2️⃣ 노트북 실행
-jupyter notebook lifelog_analysis.ipynb
+# 2️⃣ Base 전처리
+preprocess_val_base.ipynb 실행
+preprocess_test_base.ipynb 실행
 
+# 3️⃣ Full 전처리
+preprocess_val_full.ipynb 실행
+preprocess_test_full.ipynb 실행
+
+# 4️⃣ Base 모델 학습
+train_cnn_base.ipynb 실행
+
+# 5️⃣ Full 모델 학습
+train_cnn_full.ipynb 실행
+
+# 6️⃣ Base 추론
+inference_cnn_base.ipynb 실행
+
+# 7️⃣ Full 추론
+inference_cnn_full.ipynb 실행
+
+# 8️⃣ 제출파일 생성
+submission.ipynb 실행
 ```
+
+---
+
+## 📊 성능
+- CNN 기반으로 시계열 패턴 학습
+- 센서 간 상호작용을 공간적으로 표현
+
+※ 데이터 미포함으로 인해 정확한 점수 재현은 환경에 따라 달라질 수 있음
+
 ---
 
 ## 👤 작성자
